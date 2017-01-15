@@ -14,6 +14,13 @@ import (
     "github.com/stretchr/gomniauth/providers/google"
 )
 
+// set the active Avatar implementation
+var avatars Avatar = TryAvatars{
+    UseFileSystemAvatar,
+    UseAuthAvatar,
+    UseGravatar,
+}
+
 // templ represents a single template
 type templateHandler struct {
     once sync.Once
@@ -45,13 +52,16 @@ func main() {
                    "jsCTygv154JsFyRFkd9eBrkV",
                    "http://localhost:8080/auth/callback/google"),
     )
-    r := newRoom(UseGravatar)
+    r := newRoom()
     r.tracer = trace.New(os.Stdout)
     // root
     http.Handle("/chat", MustAuth(&templateHandler{filename: "chat.html"}))
     http.Handle("/login", &templateHandler{filename: "login.html"})
     http.HandleFunc("/logout", logoutHandler)
     http.HandleFunc("/auth/", loginHandler)
+    http.Handle("/upload", MustAuth(&templateHandler{filename: "upload.html"}))
+	http.HandleFunc("/uploader", uploaderHandler)
+	http.Handle("/avatars/", http.StripPrefix("/avatars/", http.FileServer(http.Dir("./avatars/"))))
     http.Handle("/room", r)
     // start the chatroom
     go r.run()
